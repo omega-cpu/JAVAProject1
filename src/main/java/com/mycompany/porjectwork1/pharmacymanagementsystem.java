@@ -1,7 +1,7 @@
 package com.mycompany.porjectwork1;
 
-
-import com.mycompany.porjectwork1.Drugs;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -9,87 +9,125 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Vector;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.RowFilter;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
-
-/**
- *
- * @author oem
- */
 public class pharmacymanagementsystem extends javax.swing.JFrame {
 
-    /**
-     * Creates new form pharmacymanagementsystem
-     */
     public pharmacymanagementsystem() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         Connect();
         update_table();
+        setupSearchFunctionality();
+        checkStockLevels();
     }
 
-    
     Connection con;
     PreparedStatement pst;
+    private TableRowSorter<DefaultTableModel> rowSorter;
 
     public void Connect() {
         try {
+            System.out.println("Loading MySQL JDBC Driver...");
             Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection("jdbc:mysql://localhost/dump-pharmacy_management-202406182142", "root",
-                    "");
+            System.out.println("Driver loaded successfully.");
+
+            System.out.println("Connecting to the database...");
+            con = DriverManager.getConnection(
+                    "jdbc:mysql://127.0.0.1:3306/pharmacy_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
+                    "pharmacymanager",
+                    "DCITPharmacy102022"
+            );
             System.out.println("Connected to the database.");
-        } catch (ClassNotFoundException | SQLException ex) {
-            Logger.getLogger(purchase.class.getName()).log(Level.SEVERE, null, ex);
-            JOptionPane.showMessageDialog(this, "Database connection failed: " + ex.getMessage());
+        } catch (ClassNotFoundException e) {
+            Logger.getLogger(purchase.class.getName()).log(Level.SEVERE, "MySQL JDBC Driver not found", e);
+            JOptionPane.showMessageDialog(this, "Database connection failed: MySQL JDBC Driver not found");
+        } catch (SQLException e) {
+            Logger.getLogger(purchase.class.getName()).log(Level.SEVERE, "SQL error occurred", e);
+            JOptionPane.showMessageDialog(this, "Database connection failed: " + e.getMessage());
         }
     }
-    
-    
+
     private void update_table() {
-    int cc;
-    try {
-        pst = con.prepareStatement("SELECT * FROM `purchase_history`");
-        ResultSet rs = pst.executeQuery();
-        ResultSetMetaData RSMD = rs.getMetaData();
-        cc = RSMD.getColumnCount();
-        
-        DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
-        DFT.setRowCount(0); // Clear existing rows before updating
-        
-        while (rs.next()) {
-            Vector<Object> v2 = new Vector<>();
-            for (int ii = 1; ii <= cc; ii++) {
+        int cc;
+        try {
+            pst = con.prepareStatement("SELECT * FROM `purchase_history`");
+            ResultSet rs = pst.executeQuery();
+            ResultSetMetaData RSMD = rs.getMetaData();
+            cc = RSMD.getColumnCount();
+
+            System.out.println("Columns in purchase_history:");
+            for (int i = 1; i <= cc; i++) {
+                System.out.println(RSMD.getColumnName(i));
+            }
+
+            DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
+            DFT.setRowCount(0);
+
+            while (rs.next()) {
+                Vector<Object> v2 = new Vector<>();
                 v2.add(rs.getInt("purchase_id"));
                 v2.add(rs.getInt("drug_id"));
                 v2.add(rs.getDate("purchase_date"));
-                v2.add(rs.getString("buyer_info"));
                 v2.add(rs.getBigDecimal("total_amount"));
-//                v2.add(rs.getInt("customer_id"));
+                DFT.addRow(v2);
             }
-            DFT.addRow(v2);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error updating table: " + e.getMessage());
         }
-        
-    } catch (SQLException e) {
-        JOptionPane.showMessageDialog(this, "Error updating table: " + e.getMessage());
     }
-}
-    
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
+
+    private void setupSearchFunctionality() {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        rowSorter = new TableRowSorter<>(model);
+        jTable1.setRowSorter(rowSorter);
+
+        jTextField1.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String text = jTextField1.getText();
+                if (text.trim().length() == 0) {
+                    rowSorter.setRowFilter(null);
+                } else {
+                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+        });
+    }
+
+    private void checkStockLevels() {
+        try {
+            pst = con.prepareStatement("SELECT name, current_stock, min_stock_level FROM drugs WHERE current_stock < min_stock_level");
+            ResultSet rs = pst.executeQuery();
+            
+            StringBuilder lowStockDrugs = new StringBuilder();
+            
+            while (rs.next()) {
+                String drugName = rs.getString("name");
+                int currentStock = rs.getInt("current_stock");
+                int minStockLevel = rs.getInt("min_stock_level");
+                
+                lowStockDrugs.append(String.format("Drug: %s, Current Stock: %d, Minimum Stock Level: %d%n", drugName, currentStock, minStockLevel));
+            }
+            
+            if (lowStockDrugs.length() > 0) {
+                JOptionPane.showMessageDialog(this, "Low Stock Alert:\n" + lowStockDrugs.toString(), "Low Stock Alert", JOptionPane.WARNING_MESSAGE);
+            } else {
+                System.out.println("All drugs have sufficient stock levels.");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error checking stock levels: " + e.getMessage());
+        }
+    }
+
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
@@ -98,6 +136,7 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
+        jButton5 = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
@@ -153,6 +192,16 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
             }
         });
 
+        jButton5.setBackground(new java.awt.Color(153, 0, 51));
+        jButton5.setFont(new java.awt.Font("Liberation Sans", 1, 15)); // NOI18N
+        jButton5.setForeground(new java.awt.Color(255, 255, 255));
+        jButton5.setText("Reports");
+        jButton5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton5ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -163,7 +212,8 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
                     .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, 181, Short.MAX_VALUE)
                     .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
@@ -177,6 +227,8 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
                 .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(43, 43, 43)
                 .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(43, 43, 43)
+                .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(383, Short.MAX_VALUE))
         );
 
@@ -194,13 +246,13 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
             },
             new String [] {
-                "purchase_id", "drug_id", "date", "buyer info", "price", "supplier_id"
+                "purchase_id", "drug_id", "date", "price", "customer_id"
             }
         ));
         jScrollPane1.setViewportView(jTable1);
@@ -267,63 +319,34 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         );
 
         pack();
-    }// </editor-fold>//GEN-END:initComponents
+    }
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
-        
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {
         Drugs drugs = new Drugs();
         drugs.show();
-    }//GEN-LAST:event_jButton1ActionPerformed
+    }
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
- suppliers Supplier = new suppliers();
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {
+        suppliers Supplier = new suppliers();
         Supplier.show();
-        // TODO add your handling code here:
-      
-    }//GEN-LAST:event_jButton2ActionPerformed
+    }
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
-        
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {
         purchase Purchase = new purchase();
         Purchase.show();
-    }//GEN-LAST:event_jButton3ActionPerformed
+    }
 
-    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        // TODO add your handling code here:
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {
         sales Sales = new sales();
         Sales.show();
-    }//GEN-LAST:event_jButton4ActionPerformed
+    }
 
-    /**
-     * @param args the command line arguments
-     */
+    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {
+        ReportViewer reportViewer = new ReportViewer(con);  // Pass the connection to ReportViewer
+        reportViewer.setVisible(true);
+    }
+
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(pharmacymanagementsystem.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(pharmacymanagementsystem.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(pharmacymanagementsystem.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(pharmacymanagementsystem.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new pharmacymanagementsystem().setVisible(true);
@@ -331,11 +354,11 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         });
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
+    private javax.swing.JButton jButton5;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -344,5 +367,4 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
     private javax.swing.JTextField jTextField1;
-    // End of variables declaration//GEN-END:variables
 }

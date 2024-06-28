@@ -1,0 +1,75 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\PC\\source\\repos\\JAVAProject1\\src\\main\\java\\com\\mycompany\\porjectwork1\\Porjectwork1.java||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\main\\java\\com\\mycompany\\porjectwork1\\Porjectwork1.java||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\PC\\source\\repos\\JAVAProject1\\pom.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:pom.xml||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\PC\\source\\repos\\JAVAProject1\\src\\main\\java\\com\\mycompany\\porjectwork1\\pharmacymanagementsystem.java||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\main\\java\\com\\mycompany\\porjectwork1\\pharmacymanagementsystem.java||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Porjectwork1.java",
+              "DocumentMoniker": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\src\\main\\java\\com\\mycompany\\porjectwork1\\Porjectwork1.java",
+              "RelativeDocumentMoniker": "src\\main\\java\\com\\mycompany\\porjectwork1\\Porjectwork1.java",
+              "ToolTip": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\src\\main\\java\\com\\mycompany\\porjectwork1\\Porjectwork1.java",
+              "RelativeToolTip": "src\\main\\java\\com\\mycompany\\porjectwork1\\Porjectwork1.java",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-06-26T17:43:42.24Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "pom.xml",
+              "DocumentMoniker": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\pom.xml",
+              "RelativeDocumentMoniker": "pom.xml",
+              "ToolTip": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\pom.xml",
+              "RelativeToolTip": "pom.xml",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAACMAAAAKAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003576|",
+              "WhenOpened": "2024-06-26T17:43:15.656Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "pharmacymanagementsystem.java",
+              "DocumentMoniker": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\src\\main\\java\\com\\mycompany\\porjectwork1\\pharmacymanagementsystem.java",
+              "RelativeDocumentMoniker": "src\\main\\java\\com\\mycompany\\porjectwork1\\pharmacymanagementsystem.java",
+              "ToolTip": "C:\\Users\\PC\\source\\repos\\JAVAProject1\\src\\main\\java\\com\\mycompany\\porjectwork1\\pharmacymanagementsystem.java",
+              "RelativeToolTip": "src\\main\\java\\com\\mycompany\\porjectwork1\\pharmacymanagementsystem.java",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-06-26T17:43:00.61Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
