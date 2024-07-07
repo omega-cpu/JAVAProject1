@@ -7,7 +7,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -17,20 +20,26 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
+/**
+ * The purchase class handles the purchase-related functionalities of the pharmacy management system.
+ */
 public class purchase extends javax.swing.JFrame {
 
     public purchase() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        Connect();
-        populateDrugComboBox();
-        update_table();
-        setupSearchFunctionality();
+        Connect();  // Establish database connection
+        populateDrugComboBox();  // Populate the drug combo box with data
+        update_table();  // Update the table with purchase history data
+        setupSearchFunctionality();  // Setup search functionality for the table
     }
 
-    Connection con;
-    PreparedStatement pst;
+    Connection con;  // Database connection
+    PreparedStatement pst;  // Prepared statement for executing SQL queries
 
+    /**
+     * Method to establish a connection to the database.
+     */
     public void Connect() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -43,18 +52,28 @@ public class purchase extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to populate the drug combo box with data from the database.
+     */
     private void populateDrugComboBox() {
         try {
             pst = con.prepareStatement("SELECT drug_id, name FROM drugs");
             ResultSet rs = pst.executeQuery();
+            List<DrugItem> drugItems = new ArrayList<>();
             while (rs.next()) {
-                comboDrug.addItem(new DrugItem(rs.getInt("drug_id"), rs.getString("name")));
+                drugItems.add(new DrugItem(rs.getInt("drug_id"), rs.getString("name")));
+            }
+            for (DrugItem item : drugItems) {
+                comboDrug.addItem(item);
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error loading drugs: " + e.getMessage());
         }
     }
 
+    /**
+     * Inner class to represent a drug item with an ID and name.
+     */
     private class DrugItem {
         int id;
         String name;
@@ -74,6 +93,9 @@ public class purchase extends javax.swing.JFrame {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * Method to initialize the components of the GUI.
+     */
     private void initComponents() {
         jPanel1 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
@@ -101,18 +123,12 @@ public class purchase extends javax.swing.JFrame {
         jPanel1.setBackground(new java.awt.Color(0, 51, 51));
         jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
 
-        jLabel6.setFont(new java.awt.Font("Liberation Sans", 0, 18));
+        jLabel6.setFont(new java.awt.Font("Liberation Sans", 0, 18)); 
         jLabel6.setForeground(new java.awt.Color(255, 255, 255));
         jLabel6.setText("Search");
 
-        jTextField2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jTextField2ActionPerformed(evt);
-            }
-        });
-
         jTable1.setBorder(javax.swing.BorderFactory.createCompoundBorder());
-        jTable1.setFont(new java.awt.Font("Liberation Sans", 1, 15));
+        jTable1.setFont(new java.awt.Font("Liberation Sans", 1, 15)); 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null, null, null},
@@ -159,7 +175,7 @@ public class purchase extends javax.swing.JFrame {
 
         jPanel2.setBackground(new java.awt.Color(0, 102, 102));
 
-        jLabel1.setFont(new java.awt.Font("Liberation Sans", 1, 36));
+        jLabel1.setFont(new java.awt.Font("Liberation Sans", 1, 36)); 
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
         jLabel1.setText("Purchase");
 
@@ -169,35 +185,23 @@ public class purchase extends javax.swing.JFrame {
             }
         });
 
-        jLabel2.setFont(new java.awt.Font("Liberation Sans", 1, 18));
+        jLabel2.setFont(new java.awt.Font("Liberation Sans", 1, 18)); 
         jLabel2.setForeground(new java.awt.Color(255, 255, 255));
         jLabel2.setText("Drug");
 
-        jLabel3.setFont(new java.awt.Font("Liberation Sans", 1, 18));
+        jLabel3.setFont(new java.awt.Font("Liberation Sans", 1, 18)); 
         jLabel3.setForeground(new java.awt.Color(255, 255, 255));
         jLabel3.setText("Date");
 
         dateChooser.setDate(new Date());
 
-        jLabel5.setFont(new java.awt.Font("Liberation Sans", 1, 18));
+        jLabel5.setFont(new java.awt.Font("Liberation Sans", 1, 18)); 
         jLabel5.setForeground(new java.awt.Color(255, 255, 255));
         jLabel5.setText("Price");
 
-        txtPrice.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtPriceActionPerformed(evt);
-            }
-        });
-
-        jLabel7.setFont(new java.awt.Font("Liberation Sans", 1, 18));
+        jLabel7.setFont(new java.awt.Font("Liberation Sans", 1, 18)); 
         jLabel7.setForeground(new java.awt.Color(255, 255, 255));
         jLabel7.setText("Quantity");
-
-        txtQuantity.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtQuantityActionPerformed(evt);
-            }
-        });
 
         jButton1.setText("Save");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
@@ -305,6 +309,7 @@ public class purchase extends javax.swing.JFrame {
 
         String drugName = model.getValueAt(selectedIndex, 1).toString();
 
+        // Iterate through the items in the combo box to find the selected drug
         for (int i = 0; i < comboDrug.getItemCount(); i++) {
             DrugItem item = (DrugItem) comboDrug.getItemAt(i);
             if (item.toString().equals(drugName)) {
@@ -449,6 +454,9 @@ public class purchase extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to update the table with purchase history data from the database.
+     */
     private void update_table() {
         int cc;
         try {
@@ -460,6 +468,7 @@ public class purchase extends javax.swing.JFrame {
             DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
             DFT.setRowCount(0); // Clear existing rows before updating
 
+            List<Vector<Object>> dataList = new ArrayList<>();
             while (rs.next()) {
                 Vector<Object> v2 = new Vector<>();
                 for (int ii = 1; ii <= cc; ii++) {
@@ -470,7 +479,13 @@ public class purchase extends javax.swing.JFrame {
                     v2.add(rs.getInt("quantity"));
                     v2.add(rs.getString("supplier"));
                 }
-                DFT.addRow(v2);
+                dataList.add(v2);
+            }
+
+            // Using an Iterator to add rows to the table model
+            Iterator<Vector<Object>> iterator = dataList.iterator();
+            while (iterator.hasNext()) {
+                DFT.addRow(iterator.next());
             }
 
         } catch (SQLException e) {
@@ -488,6 +503,9 @@ public class purchase extends javax.swing.JFrame {
 
     private void comboDrugActionPerformed(java.awt.event.ActionEvent evt) {}
 
+    /**
+     * Method to setup search functionality for the table.
+     */
     private void setupSearchFunctionality() {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         TableRowSorter<DefaultTableModel> rowSorter = new TableRowSorter<>(model);
@@ -519,6 +537,9 @@ public class purchase extends javax.swing.JFrame {
         });
     }
 
+    /**
+     * The main method to start the application.
+     */
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -527,6 +548,7 @@ public class purchase extends javax.swing.JFrame {
         });
     }
 
+    // Variables declaration
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
@@ -545,4 +567,5 @@ public class purchase extends javax.swing.JFrame {
     private com.toedter.calendar.JDateChooser dateChooser;
     private javax.swing.JTextField txtPrice;
     private javax.swing.JTextField txtQuantity;
+    // End of variables declaration
 }

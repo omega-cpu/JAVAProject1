@@ -8,6 +8,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,21 +21,28 @@ import javax.swing.RowFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
+/**
+ * The main class for the Pharmacy Management System application.
+ */
 public class pharmacymanagementsystem extends javax.swing.JFrame {
 
+    // Constructor for initializing the Pharmacy Management System
     public pharmacymanagementsystem() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        Connect();
-        update_table();
-        setupSearchFunctionality();
-        checkStockLevels();
+        Connect();  // Establish database connection
+        update_table();  // Update the table with purchase history data
+        setupSearchFunctionality();  // Setup search functionality for the table
+        checkStockLevels();  // Check stock levels and alert if necessary
     }
 
-    Connection con;
-    PreparedStatement pst;
-    private TableRowSorter<DefaultTableModel> rowSorter;
+    Connection con;  // Database connection
+    PreparedStatement pst;  // Prepared statement for executing SQL queries
+    private TableRowSorter<DefaultTableModel> rowSorter;  // Row sorter for filtering table rows
 
+    /**
+     * Method to establish a connection to the database.
+     */
     public void Connect() {
         try {
             System.out.println("Loading MySQL JDBC Driver...");
@@ -54,6 +65,9 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to update the table with purchase history data from the database.
+     */
     private void update_table() {
         int cc;
         try {
@@ -70,13 +84,21 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
             DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
             DFT.setRowCount(0);
 
+            // Using a List to store the rows from the ResultSet
+            List<Vector<Object>> dataList = new ArrayList<>();
             while (rs.next()) {
                 Vector<Object> v2 = new Vector<>();
                 v2.add(rs.getInt("purchase_id"));
                 v2.add(rs.getInt("drug_id"));
                 v2.add(rs.getDate("purchase_date"));
                 v2.add(rs.getBigDecimal("total_amount"));
-                DFT.addRow(v2);
+                dataList.add(v2);
+            }
+
+            // Using an Iterator to add rows to the table model
+            Iterator<Vector<Object>> iterator = dataList.iterator();
+            while (iterator.hasNext()) {
+                DFT.addRow(iterator.next());
             }
 
         } catch (SQLException e) {
@@ -84,6 +106,9 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to setup search functionality for the table.
+     */
     private void setupSearchFunctionality() {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         rowSorter = new TableRowSorter<>(model);
@@ -102,23 +127,31 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         });
     }
 
+    /**
+     * Method to check stock levels and alert if any drug is below the minimum stock level.
+     */
     private void checkStockLevels() {
         try {
             pst = con.prepareStatement("SELECT name, current_stock, min_stock_level FROM drugs WHERE current_stock < min_stock_level");
             ResultSet rs = pst.executeQuery();
             
-            StringBuilder lowStockDrugs = new StringBuilder();
+            // Using a Stack to store low stock drug messages
+            Stack<String> lowStockDrugs = new Stack<>();
             
             while (rs.next()) {
                 String drugName = rs.getString("name");
                 int currentStock = rs.getInt("current_stock");
                 int minStockLevel = rs.getInt("min_stock_level");
                 
-                lowStockDrugs.append(String.format("Drug: %s, Current Stock: %d, Minimum Stock Level: %d%n", drugName, currentStock, minStockLevel));
+                lowStockDrugs.push(String.format("Drug: %s, Current Stock: %d, Minimum Stock Level: %d", drugName, currentStock, minStockLevel));
             }
             
-            if (lowStockDrugs.length() > 0) {
-                JOptionPane.showMessageDialog(this, "Low Stock Alert:\n" + lowStockDrugs.toString(), "Low Stock Alert", JOptionPane.WARNING_MESSAGE);
+            if (!lowStockDrugs.isEmpty()) {
+                StringBuilder lowStockMessage = new StringBuilder();
+                while (!lowStockDrugs.isEmpty()) {
+                    lowStockMessage.append(lowStockDrugs.pop()).append("\n");
+                }
+                JOptionPane.showMessageDialog(this, "Low Stock Alert:\n" + lowStockMessage.toString(), "Low Stock Alert", JOptionPane.WARNING_MESSAGE);
             } else {
                 System.out.println("All drugs have sufficient stock levels.");
             }
@@ -128,6 +161,9 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * Method to initialize the components of the GUI.
+     */
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
@@ -346,6 +382,9 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         reportViewer.setVisible(true);
     }
 
+    /**
+     * The main method to start the application.
+     */
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -354,6 +393,7 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
         });
     }
 
+    // Variables declaration
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
@@ -367,4 +407,5 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
     private javax.swing.JTextField jTextField1;
+    // End of variables declaration
 }

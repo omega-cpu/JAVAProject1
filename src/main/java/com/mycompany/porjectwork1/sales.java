@@ -9,7 +9,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -17,20 +18,26 @@ import javax.swing.RowFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
+/**
+ * The sales class handles sales-related functionalities of the pharmacy management system.
+ */
 public class sales extends javax.swing.JFrame {
 
     public sales() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        Connect();
-        update_table();
-        loadDrugs();
-        loadCustomers();
+        Connect();  // Establish database connection
+        update_table();  // Update table with sales data
+        loadDrugs();  // Load drugs into the combo box
+        loadCustomers();  // Load customers into the combo box
     }
 
-    Connection con;
-    PreparedStatement pst;
+    Connection con;  // Database connection
+    PreparedStatement pst;  // Prepared statement for executing SQL queries
 
+    /**
+     * Method to establish a connection to the database.
+     */
     public void Connect() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -42,6 +49,9 @@ public class sales extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to initialize GUI components.
+     */
     private void initComponents() {
         jPanel1 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
@@ -508,6 +518,9 @@ public class sales extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to update the table with sales data from the database.
+     */
     private void update_table() {
         try {
             pst = con.prepareStatement("SELECT s.sale_id, d.name AS drug, s.sale_date, s.quantity, s.total_amount, c.name AS customer FROM sales s JOIN drugs d ON s.drug_id = d.drug_id JOIN customers c ON s.customer_id = c.customer_id");
@@ -515,26 +528,30 @@ public class sales extends javax.swing.JFrame {
             ResultSetMetaData rsmd = rs.getMetaData();
             int cc = rsmd.getColumnCount();
 
-            DefaultTableModel dft = (DefaultTableModel) jTable1.getModel();
-            dft.setRowCount(0);
+            DefaultTableModel tableModel = (DefaultTableModel) jTable1.getModel();
+            tableModel.setRowCount(0); // Clear existing rows before updating
 
+            List<List<Object>> rowDataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> v2 = new Vector<>();
+                List<Object> row = new ArrayList<>();
                 for (int ii = 1; ii <= cc; ii++) {
-                    v2.add(rs.getInt("sale_id"));
-                    v2.add(rs.getString("drug"));
-                    v2.add(rs.getDate("sale_date"));
-                    v2.add(rs.getInt("quantity"));
-                    v2.add(rs.getDouble("total_amount"));
-                    v2.add(rs.getString("customer"));
+                    row.add(rs.getObject(ii));
                 }
-                dft.addRow(v2);
+                rowDataList.add(row);
+            }
+
+            // Using an Iterator to add rows to the table model
+            for (List<Object> row : rowDataList) {
+                tableModel.addRow(row.toArray());
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error updating table: " + e.getMessage());
         }
     }
 
+    /**
+     * Method to load drugs into the combo box.
+     */
     private void loadDrugs() {
         try {
             pst = con.prepareStatement("SELECT name FROM drugs");
@@ -548,6 +565,9 @@ public class sales extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to load customers into the combo box.
+     */
     private void loadCustomers() {
         try {
             pst = con.prepareStatement("SELECT name FROM customers");
@@ -561,6 +581,9 @@ public class sales extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * The main method to start the application.
+     */
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(() -> new sales().setVisible(true));
     }

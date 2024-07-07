@@ -9,7 +9,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -21,22 +23,31 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import com.toedter.calendar.JDateChooser;
 
+/**
+ * ReportViewer class handles displaying sales and purchase reports in a dialog.
+ */
 public class ReportViewer extends JDialog {
-    
-    private Connection con;
+
+    private Connection con;  // Database connection
     private JDateChooser startDateChooser;
     private JDateChooser endDateChooser;
     private JTable reportTable;
     private DefaultTableModel tableModel;
 
+    /**
+     * Constructor to initialize ReportViewer with database connection.
+     */
     public ReportViewer(Connection con) {
         this.con = con;
         setTitle("Reports");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        initComponents();
+        initComponents();  // Initialize GUI components
     }
 
+    /**
+     * Method to initialize GUI components.
+     */
     private void initComponents() {
         JPanel panel = new JPanel();
         panel.add(new JLabel("Start Date:"));
@@ -51,7 +62,7 @@ public class ReportViewer extends JDialog {
         viewSalesButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                viewSalesReport();
+                viewSalesReport();  // Handle view sales report action
             }
         });
         panel.add(viewSalesButton);
@@ -60,7 +71,7 @@ public class ReportViewer extends JDialog {
         viewPurchaseButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                viewPurchaseReport();
+                viewPurchaseReport();  // Handle view purchase report action
             }
         });
         panel.add(viewPurchaseButton);
@@ -73,6 +84,9 @@ public class ReportViewer extends JDialog {
         getContentPane().add(scrollPane, BorderLayout.CENTER);
     }
 
+    /**
+     * Method to view the sales report.
+     */
     private void viewSalesReport() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String startDate = sdf.format(startDateChooser.getDate());
@@ -89,19 +103,28 @@ public class ReportViewer extends JDialog {
             tableModel.setRowCount(0);
             tableModel.setColumnCount(0);
 
+            // Add column names to the table model
             for (int i = 1; i <= columnCount; i++) {
                 tableModel.addColumn(rsmd.getColumnName(i));
             }
 
             double totalAmount = 0;
 
+            // Using a List to store rows of data
+            List<List<Object>> rowDataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> row = new Vector<>();
+                List<Object> row = new ArrayList<>();
                 for (int i = 1; i <= columnCount; i++) {
                     row.add(rs.getObject(i));
                 }
-                tableModel.addRow(row);
+                rowDataList.add(row);
                 totalAmount += rs.getDouble("total_amount");
+            }
+
+            // Using an Iterator to add rows to the table model
+            Iterator<List<Object>> iterator = rowDataList.iterator();
+            while (iterator.hasNext()) {
+                tableModel.addRow(iterator.next().toArray());
             }
 
             JOptionPane.showMessageDialog(this, "Total Sales Amount: " + totalAmount);
@@ -111,6 +134,9 @@ public class ReportViewer extends JDialog {
         }
     }
 
+    /**
+     * Method to view the purchase report.
+     */
     private void viewPurchaseReport() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String startDate = sdf.format(startDateChooser.getDate());
@@ -127,19 +153,28 @@ public class ReportViewer extends JDialog {
             tableModel.setRowCount(0);
             tableModel.setColumnCount(0);
 
+            // Add column names to the table model
             for (int i = 1; i <= columnCount; i++) {
                 tableModel.addColumn(rsmd.getColumnName(i));
             }
 
             double totalAmount = 0;
 
+            // Using a List to store rows of data
+            List<List<Object>> rowDataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> row = new Vector<>();
+                List<Object> row = new ArrayList<>();
                 for (int i = 1; i <= columnCount; i++) {
                     row.add(rs.getObject(i));
                 }
-                tableModel.addRow(row);
+                rowDataList.add(row);
                 totalAmount += rs.getDouble("total_amount");
+            }
+
+            // Using an Iterator to add rows to the table model
+            Iterator<List<Object>> iterator = rowDataList.iterator();
+            while (iterator.hasNext()) {
+                tableModel.addRow(iterator.next().toArray());
             }
 
             JOptionPane.showMessageDialog(this, "Total Purchase Amount: " + totalAmount);

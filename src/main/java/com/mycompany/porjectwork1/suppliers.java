@@ -8,7 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
@@ -19,12 +20,11 @@ import javax.swing.table.TableRowSorter;
 
 /**
  * Suppliers Management
- * 
  */
 public class suppliers extends javax.swing.JFrame {
 
     /**
-     * Creates new form Drugs
+     * Creates new form Suppliers
      */
     public suppliers() {
         initComponents();
@@ -34,10 +34,13 @@ public class suppliers extends javax.swing.JFrame {
         setupSearchFunctionality();
     }
 
-    Connection con;
-    PreparedStatement pst;
-    private TableRowSorter<DefaultTableModel> rowSorter;
+    Connection con; // Database connection
+    PreparedStatement pst; // Prepared statement for executing SQL queries
+    private TableRowSorter<DefaultTableModel> rowSorter; // For sorting table rows
 
+    /**
+     * Method to establish a connection to the database.
+     */
     public void Connect() {
         try {
             System.out.println("Loading MySQL JDBC Driver...");
@@ -62,6 +65,9 @@ public class suppliers extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to update the table with suppliers data from the database.
+     */
     private void update_table() {
         int cc;
         try {
@@ -73,15 +79,19 @@ public class suppliers extends javax.swing.JFrame {
             DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
             DFT.setRowCount(0); // Clear existing rows before updating
 
+            List<List<Object>> rowDataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> v2 = new Vector<>();
-                for (int ii = 1; ii <= cc; ii++) {
-                    v2.add(rs.getInt("supplier_id"));
-                    v2.add(rs.getString("name"));
-                    v2.add(rs.getString("location"));
-                    v2.add(rs.getString("contact_info"));
-                }
-                DFT.addRow(v2);
+                List<Object> row = new ArrayList<>();
+                row.add(rs.getInt("supplier_id"));
+                row.add(rs.getString("name"));
+                row.add(rs.getString("location"));
+                row.add(rs.getString("contact_info"));
+                rowDataList.add(row);
+            }
+
+            // Using an Iterator to add rows to the table model
+            for (List<Object> row : rowDataList) {
+                DFT.addRow(row.toArray());
             }
 
         } catch (SQLException e) {
@@ -89,6 +99,9 @@ public class suppliers extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to set up the search functionality for the suppliers table.
+     */
     private void setupSearchFunctionality() {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         rowSorter = new TableRowSorter<>(model);
@@ -300,6 +313,9 @@ public class suppliers extends javax.swing.JFrame {
         pack();
     }// </editor-fold>
 
+    /**
+     * Method to handle table row click events to display the selected supplier's details.
+     */
     private void jTable1MouseClicked(java.awt.event.MouseEvent evt) {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         int selectedIndex = jTable1.getSelectedRow();
@@ -310,6 +326,9 @@ public class suppliers extends javax.swing.JFrame {
         txtContactInfo.setText(model.getValueAt(selectedIndex, 3).toString());
     }
 
+    /**
+     * Method to handle the Update button action.
+     */
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {
         try {
             DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
@@ -345,6 +364,9 @@ public class suppliers extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to handle the Delete button action.
+     */
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {
         try {
             DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
@@ -379,6 +401,9 @@ public class suppliers extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Method to handle the Save button action.
+     */
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {
         try {
             String name = txtName.getText();
@@ -405,6 +430,9 @@ public class suppliers extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * The main method to start the application.
+     */
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         // <editor-fold defaultstate="collapsed" desc=" Look and feel setting code
@@ -435,11 +463,7 @@ public class suppliers extends javax.swing.JFrame {
         // </editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new suppliers().setVisible(true);
-            }
-        });
+        java.awt.EventQueue.invokeLater(() -> new suppliers().setVisible(true));
     }
 
     // Variables declaration - do not modify

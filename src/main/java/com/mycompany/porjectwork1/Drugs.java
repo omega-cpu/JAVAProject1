@@ -8,7 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultComboBoxModel;
@@ -18,8 +19,14 @@ import javax.swing.RowFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
+/**
+ * Class for managing drug records in the pharmacy system.
+ */
 public class Drugs extends javax.swing.JFrame {
 
+    /**
+     * Creates new form Drugs and initializes components.
+     */
     public Drugs() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -33,6 +40,9 @@ public class Drugs extends javax.swing.JFrame {
     PreparedStatement pst;
     DefaultTableModel DFT;
 
+    /**
+     * Establishes a connection to the database.
+     */
     public void Connect() {
         try {
             System.out.println("Loading MySQL JDBC Driver...");
@@ -55,6 +65,9 @@ public class Drugs extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Loads the list of suppliers from the database into the combo box.
+     */
     private void loadSuppliers() {
         try {
             pst = con.prepareStatement("SELECT * FROM suppliers");
@@ -546,16 +559,21 @@ public class Drugs extends javax.swing.JFrame {
             DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
             DFT.setRowCount(0); // Clear existing rows before updating
             
+            List<Object[]> dataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> v2 = new Vector<>();
-                v2.add(rs.getInt("drug_id"));
-                v2.add(rs.getString("name"));
-                v2.add(rs.getString("price"));
-                v2.add(rs.getString("description"));
-                v2.add(rs.getInt("supplier_id"));
-                v2.add(rs.getInt("current_stock"));
-                v2.add(rs.getInt("min_stock_level"));
-                DFT.addRow(v2);
+                Object[] rowData = new Object[cc];
+                rowData[0] = rs.getInt("drug_id");
+                rowData[1] = rs.getString("name");
+                rowData[2] = rs.getString("price");
+                rowData[3] = rs.getString("description");
+                rowData[4] = rs.getInt("supplier_id");
+                rowData[5] = rs.getInt("current_stock");
+                rowData[6] = rs.getInt("min_stock_level");
+                dataList.add(rowData);
+            }
+            
+            for (Object[] rowData : dataList) {
+                DFT.addRow(rowData);
             }
             
         } catch (SQLException e) {
@@ -569,15 +587,16 @@ public class Drugs extends javax.swing.JFrame {
             pst = con.prepareStatement("SELECT name FROM drugs WHERE current_stock < min_stock_level");
             ResultSet rs = pst.executeQuery();
             
-            StringBuilder alertMessage = new StringBuilder("The following drugs are low in stock:\n");
-            boolean lowStockFound = false;
-            
+            List<String> lowStockDrugs = new ArrayList<>();
             while (rs.next()) {
-                alertMessage.append(rs.getString("name")).append("\n");
-                lowStockFound = true;
+                lowStockDrugs.add(rs.getString("name"));
             }
             
-            if (lowStockFound) {
+            if (!lowStockDrugs.isEmpty()) {
+                StringBuilder alertMessage = new StringBuilder("The following drugs are low in stock:\n");
+                for (String drug : lowStockDrugs) {
+                    alertMessage.append(drug).append("\n");
+                }
                 JOptionPane.showMessageDialog(this, alertMessage.toString(), "Low Stock Alert", JOptionPane.WARNING_MESSAGE);
             }
         } catch (SQLException e) {
