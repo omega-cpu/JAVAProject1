@@ -10,7 +10,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Stack;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -23,6 +26,10 @@ import javax.swing.table.TableRowSorter;
  */
 public class sales extends javax.swing.JFrame {
 
+    private Stack<String> recentActions;
+    private HashMap<String, Double> drugPriceCache;
+    private PriorityQueue<Sale> highestSales;
+
     public sales() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -30,6 +37,9 @@ public class sales extends javax.swing.JFrame {
         update_table();  // Update table with sales data
         loadDrugs();  // Load drugs into the combo box
         loadCustomers();  // Load customers into the combo box
+        recentActions = new Stack<>();
+        drugPriceCache = new HashMap<>();
+        highestSales = new PriorityQueue<>((a, b) -> Double.compare(b.getTotalAmount(), a.getTotalAmount()));
     }
 
     Connection con;  // Database connection
@@ -73,6 +83,7 @@ public class sales extends javax.swing.JFrame {
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
+        jButton5 = new javax.swing.JButton();
         jLabel7 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -177,6 +188,9 @@ public class sales extends javax.swing.JFrame {
         jButton4.setText("Add Customer");
         jButton4.addActionListener(evt -> jButton4ActionPerformed(evt));
 
+        jButton5.setText("View Recent Actions");
+        jButton5.addActionListener(evt -> viewRecentActions(evt));
+
         jLabel7.setFont(new java.awt.Font("Liberation Sans", 1, 18));
         jLabel7.setForeground(new java.awt.Color(255, 255, 255));
         jLabel7.setText("Total Amount");
@@ -205,7 +219,8 @@ public class sales extends javax.swing.JFrame {
                                                 .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                 .addGap(47, 47, 47)
                                                 .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                        .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 526, Short.MAX_VALUE))
+                                        .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 526, Short.MAX_VALUE)
+                                        .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, 526, Short.MAX_VALUE))
                                 .addGap(85, 85, 85))
         );
         jPanel2Layout.setVerticalGroup(
@@ -233,8 +248,10 @@ public class sales extends javax.swing.JFrame {
                                 .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(cbCustomer, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(80, 80, 80)
+                                .addGap(18, 18, 18)
                                 .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(18, 18, 18)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                         .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)
@@ -324,17 +341,20 @@ public class sales extends javax.swing.JFrame {
             String drug = cbDrug.getSelectedItem().toString();
             int quantity = Integer.parseInt(txtquantity.getText());
 
-            String query = "SELECT price FROM drugs WHERE name = ?";
-            pst = con.prepareStatement(query);
-            pst.setString(1, drug);
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) {
-                double price = rs.getDouble("price");
-                double totalAmount = price * quantity;
-                txttotalamount.setText(String.valueOf(totalAmount));
-            } else {
-                txttotalamount.setText("");
+            if (!drugPriceCache.containsKey(drug)) {
+                String query = "SELECT price FROM drugs WHERE name = ?";
+                pst = con.prepareStatement(query);
+                pst.setString(1, drug);
+                ResultSet rs = pst.executeQuery();
+                if (rs.next()) {
+                    double price = rs.getDouble("price");
+                    drugPriceCache.put(drug, price);
+                }
             }
+
+            double price = drugPriceCache.get(drug);
+            double totalAmount = price * quantity;
+            txttotalamount.setText(String.valueOf(totalAmount));
         } catch (NumberFormatException e) {
             txttotalamount.setText("");
             JOptionPane.showMessageDialog(this, "Error calculating total amount: " + e.getMessage());
@@ -373,6 +393,12 @@ public class sales extends javax.swing.JFrame {
             pst.setInt(1, quantity);
             pst.setInt(2, drugId);
             pst.executeUpdate();
+
+            // Add the sale to the highestSales priority queue
+            highestSales.add(new Sale(drugId, saleDate, quantity, totalAmount, customerId));
+
+            // Add action to recent actions stack
+            recentActions.push("Added sale of " + drug + " to " + customer + " on " + saleDate);
 
             JOptionPane.showMessageDialog(this, "Data stored");
 
@@ -454,6 +480,9 @@ public class sales extends javax.swing.JFrame {
             pst.setInt(2, drugId);
             pst.executeUpdate();
 
+            // Add action to recent actions stack
+            recentActions.push("Updated sale of " + drug + " to " + customer + " on " + saleDate);
+
             JOptionPane.showMessageDialog(this, "Data updated successfully");
 
             clearForm();
@@ -493,6 +522,9 @@ public class sales extends javax.swing.JFrame {
                 pst.setInt(2, drugId);
                 pst.executeUpdate();
 
+                // Add action to recent actions stack
+                recentActions.push("Deleted sale of " + drug);
+
                 JOptionPane.showMessageDialog(this, "Data deleted successfully");
 
                 clearForm();
@@ -516,6 +548,14 @@ public class sales extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "Error adding customer: " + e.getMessage());
             }
         }
+    }
+
+    private void viewRecentActions(java.awt.event.ActionEvent evt) {
+        StringBuilder actions = new StringBuilder("Recent Actions:\n");
+        for (String action : recentActions) {
+            actions.append(action).append("\n");
+        }
+        JOptionPane.showMessageDialog(this, actions.toString());
     }
 
     /**
@@ -588,6 +628,26 @@ public class sales extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(() -> new sales().setVisible(true));
     }
 
+    private static class Sale {
+        private final int drugId;
+        private final String saleDate;
+        private final int quantity;
+        private final double totalAmount;
+        private final int customerId;
+
+        public Sale(int drugId, String saleDate, int quantity, double totalAmount, int customerId) {
+            this.drugId = drugId;
+            this.saleDate = saleDate;
+            this.quantity = quantity;
+            this.totalAmount = totalAmount;
+            this.customerId = customerId;
+        }
+
+        public double getTotalAmount() {
+            return totalAmount;
+        }
+    }
+
     // Variables declaration - do not modify
     private javax.swing.JComboBox<String> cbCustomer;
     private javax.swing.JComboBox<String> cbDrug;
@@ -596,6 +656,7 @@ public class sales extends javax.swing.JFrame {
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
+    private javax.swing.JButton jButton5;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

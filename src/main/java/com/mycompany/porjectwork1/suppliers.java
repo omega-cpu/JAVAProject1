@@ -9,9 +9,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.RowFilter;
@@ -23,6 +26,12 @@ import javax.swing.table.TableRowSorter;
  */
 public class suppliers extends javax.swing.JFrame {
 
+    private Connection con; // Database connection
+    private PreparedStatement pst; // Prepared statement for executing SQL queries
+    private TableRowSorter<DefaultTableModel> rowSorter; // For sorting table rows
+    private Stack<String> recentActions; // Stack for tracking recent actions
+    private HashMap<Integer, Supplier> supplierCache; // Cache for supplier data
+
     /**
      * Creates new form Suppliers
      */
@@ -30,13 +39,11 @@ public class suppliers extends javax.swing.JFrame {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         Connect();
+        recentActions = new Stack<>();
+        supplierCache = new HashMap<>();
         update_table();
         setupSearchFunctionality();
     }
-
-    Connection con; // Database connection
-    PreparedStatement pst; // Prepared statement for executing SQL queries
-    private TableRowSorter<DefaultTableModel> rowSorter; // For sorting table rows
 
     /**
      * Method to establish a connection to the database.
@@ -71,7 +78,7 @@ public class suppliers extends javax.swing.JFrame {
     private void update_table() {
         int cc;
         try {
-            pst = con.prepareStatement("SELECT * FROM `suppliers`");
+            pst = con.prepareStatement("SELECT * FROM suppliers");
             ResultSet rs = pst.executeQuery();
             ResultSetMetaData RSMD = rs.getMetaData();
             cc = RSMD.getColumnCount();
@@ -79,14 +86,24 @@ public class suppliers extends javax.swing.JFrame {
             DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
             DFT.setRowCount(0); // Clear existing rows before updating
 
+            supplierCache.clear(); // Clear the cache before updating
+
             List<List<Object>> rowDataList = new ArrayList<>();
             while (rs.next()) {
                 List<Object> row = new ArrayList<>();
-                row.add(rs.getInt("supplier_id"));
-                row.add(rs.getString("name"));
-                row.add(rs.getString("location"));
-                row.add(rs.getString("contact_info"));
+                int id = rs.getInt("supplier_id");
+                String name = rs.getString("name");
+                String location = rs.getString("location");
+                String contactInfo = rs.getString("contact_info");
+
+                row.add(id);
+                row.add(name);
+                row.add(location);
+                row.add(contactInfo);
                 rowDataList.add(row);
+
+                // Update cache
+                supplierCache.put(id, new Supplier(id, name, location, contactInfo));
             }
 
             // Using an Iterator to add rows to the table model
@@ -145,6 +162,7 @@ public class suppliers extends javax.swing.JFrame {
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
+        jButton4 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Suppliers Management");
@@ -221,25 +239,16 @@ public class suppliers extends javax.swing.JFrame {
         jLabel4.setText("Contact info");
 
         jButton1.setText("Save");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
+        jButton1.addActionListener(evt -> jButton1ActionPerformed(evt));
 
         jButton2.setText("Update");
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
-            }
-        });
+        jButton2.addActionListener(evt -> jButton2ActionPerformed(evt));
 
         jButton3.setText("Delete");
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
-            }
-        });
+        jButton3.addActionListener(evt -> jButton3ActionPerformed(evt));
+
+        jButton4.setText("View Recent Actions");
+        jButton4.addActionListener(evt -> jButton4ActionPerformed(evt));
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -264,7 +273,8 @@ public class suppliers extends javax.swing.JFrame {
                                 .addGap(55, 55, 55)
                                 .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(47, 47, 47)
-                                .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
+                                .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap(85, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
@@ -290,6 +300,8 @@ public class suppliers extends javax.swing.JFrame {
                         .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(46, Short.MAX_VALUE))
         );
 
@@ -321,9 +333,12 @@ public class suppliers extends javax.swing.JFrame {
         int selectedIndex = jTable1.getSelectedRow();
         int id = Integer.parseInt(model.getValueAt(selectedIndex, 0).toString());
 
-        txtName.setText(model.getValueAt(selectedIndex, 1).toString());
-        txtLocation.setText(model.getValueAt(selectedIndex, 2).toString());
-        txtContactInfo.setText(model.getValueAt(selectedIndex, 3).toString());
+        Supplier supplier = supplierCache.get(id);
+        if (supplier != null) {
+            txtName.setText(supplier.getName());
+            txtLocation.setText(supplier.getLocation());
+            txtContactInfo.setText(supplier.getContactInfo());
+        }
     }
 
     /**
@@ -337,13 +352,12 @@ public class suppliers extends javax.swing.JFrame {
 
             String name = txtName.getText();
             String location = txtLocation.getText();
-            String contact_info = txtContactInfo.getText();
+            String contactInfo = txtContactInfo.getText();
 
             pst = con.prepareStatement("UPDATE suppliers SET name=?, location=?, contact_info=? WHERE supplier_id=?");
-
             pst.setString(1, name);
             pst.setString(2, location);
-            pst.setString(3, contact_info);
+            pst.setString(3, contactInfo);
             pst.setInt(4, id);
 
             int rowsUpdated = pst.executeUpdate();
@@ -351,6 +365,7 @@ public class suppliers extends javax.swing.JFrame {
             if (rowsUpdated > 0) {
                 JOptionPane.showMessageDialog(this, "Data updated successfully.");
                 update_table();
+                recentActions.push("Updated supplier: " + name);
             } else {
                 JOptionPane.showMessageDialog(this, "No rows updated. Please check the selected row.");
             }
@@ -389,11 +404,11 @@ public class suppliers extends javax.swing.JFrame {
 
                 if (rowsDeleted > 0) {
                     JOptionPane.showMessageDialog(this, "Data deleted successfully.");
+                    update_table();
+                    recentActions.push("Deleted supplier with ID: " + id);
                 } else {
                     JOptionPane.showMessageDialog(this, "No rows deleted. Please check the selected row.");
                 }
-
-                update_table();
             }
 
         } catch (SQLException ex) {
@@ -408,17 +423,17 @@ public class suppliers extends javax.swing.JFrame {
         try {
             String name = txtName.getText();
             String location = txtLocation.getText();
-            String contact_info = txtContactInfo.getText();
+            String contactInfo = txtContactInfo.getText();
 
             pst = con.prepareStatement("INSERT INTO suppliers(name, location, contact_info) VALUES(?, ?, ?)");
-
             pst.setString(1, name);
             pst.setString(2, location);
-            pst.setString(3, contact_info);
+            pst.setString(3, contactInfo);
 
             pst.executeUpdate();
 
             JOptionPane.showMessageDialog(this, "Data stored");
+            recentActions.push("Added new supplier: " + name);
 
             txtName.setText("");
             txtLocation.setText("");
@@ -431,45 +446,63 @@ public class suppliers extends javax.swing.JFrame {
     }
 
     /**
+     * Method to view recent actions.
+     */
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {
+        if (recentActions.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No recent actions to display.");
+        } else {
+            StringBuilder message = new StringBuilder("Recent Actions:\n");
+            for (String action : recentActions) {
+                message.append(action).append("\n");
+            }
+            JOptionPane.showMessageDialog(this, message.toString());
+        }
+    }
+
+    /**
      * The main method to start the application.
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        // <editor-fold defaultstate="collapsed" desc=" Look and feel setting code
-        // (optional) ">
-        /*
-         * If Nimbus (introduced in Java SE 6) is not available, stay with the default
-         * look and feel.
-         * For details see
-         * http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(suppliers.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(suppliers.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(suppliers.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(suppliers.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        // </editor-fold>
-        // </editor-fold>
-
-        /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> new suppliers().setVisible(true));
+    }
+
+    // Supplier class to store supplier details
+    private static class Supplier {
+        private final int id;
+        private final String name;
+        private final String location;
+        private final String contactInfo;
+
+        public Supplier(int id, String name, String location, String contactInfo) {
+            this.id = id;
+            this.name = name;
+            this.location = location;
+            this.contactInfo = contactInfo;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public String getContactInfo() {
+            return contactInfo;
+        }
     }
 
     // Variables declaration - do not modify
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

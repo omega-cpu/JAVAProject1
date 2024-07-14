@@ -10,6 +10,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultComboBoxModel;
@@ -39,6 +40,7 @@ public class Drugs extends javax.swing.JFrame {
     Connection con;
     PreparedStatement pst;
     DefaultTableModel DFT;
+    PriorityQueue<Drug> lowStockDrugs = new PriorityQueue<>((d1, d2) -> d1.currentStock - d2.currentStock);
 
     /**
      * Establishes a connection to the database.
@@ -57,10 +59,10 @@ public class Drugs extends javax.swing.JFrame {
             );
             System.out.println("Connected to the database.");
         } catch (ClassNotFoundException e) {
-            Logger.getLogger(purchase.class.getName()).log(Level.SEVERE, "MySQL JDBC Driver not found", e);
+            Logger.getLogger(Drugs.class.getName()).log(Level.SEVERE, "MySQL JDBC Driver not found", e);
             JOptionPane.showMessageDialog(this, "Database connection failed: MySQL JDBC Driver not found");
         } catch (SQLException e) {
-            Logger.getLogger(purchase.class.getName()).log(Level.SEVERE, "SQL error occurred", e);
+            Logger.getLogger(Drugs.class.getName()).log(Level.SEVERE, "SQL error occurred", e);
             JOptionPane.showMessageDialog(this, "Database connection failed: " + e.getMessage());
         }
     }
@@ -584,18 +586,20 @@ public class Drugs extends javax.swing.JFrame {
     // Method to check stock levels and generate alerts for low stock
     private void checkStockLevels() {
         try {
-            pst = con.prepareStatement("SELECT name FROM drugs WHERE current_stock < min_stock_level");
+            pst = con.prepareStatement("SELECT drug_id, name, current_stock, min_stock_level FROM drugs WHERE current_stock < min_stock_level");
             ResultSet rs = pst.executeQuery();
             
-            List<String> lowStockDrugs = new ArrayList<>();
+            lowStockDrugs.clear();
             while (rs.next()) {
-                lowStockDrugs.add(rs.getString("name"));
+                Drug drug = new Drug(rs.getInt("drug_id"), rs.getString("name"), rs.getInt("current_stock"), rs.getInt("min_stock_level"));
+                lowStockDrugs.add(drug);
             }
             
             if (!lowStockDrugs.isEmpty()) {
                 StringBuilder alertMessage = new StringBuilder("The following drugs are low in stock:\n");
-                for (String drug : lowStockDrugs) {
-                    alertMessage.append(drug).append("\n");
+                while (!lowStockDrugs.isEmpty()) {
+                    Drug drug = lowStockDrugs.poll();
+                    alertMessage.append(drug.name).append(" (Current Stock: ").append(drug.currentStock).append(", Min Stock Level: ").append(drug.minStockLevel).append(")\n");
                 }
                 JOptionPane.showMessageDialog(this, alertMessage.toString(), "Low Stock Alert", JOptionPane.WARNING_MESSAGE);
             }
@@ -635,4 +639,19 @@ public class Drugs extends javax.swing.JFrame {
     private javax.swing.JTextField txtdescription;
     private javax.swing.JTextField txtdrug;
     private javax.swing.JTextField txtprice;
+
+    // Inner class to represent a Drug with its details
+    class Drug {
+        int id;
+        String name;
+        int currentStock;
+        int minStockLevel;
+
+        Drug(int id, String name, int currentStock, int minStockLevel) {
+            this.id = id;
+            this.name = name;
+            this.currentStock = currentStock;
+            this.minStockLevel = minStockLevel;
+        }
+    }
 }

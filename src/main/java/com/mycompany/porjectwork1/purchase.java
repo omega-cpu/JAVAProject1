@@ -7,11 +7,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.RowFilter;
@@ -25,6 +26,8 @@ import javax.swing.table.TableRowSorter;
  */
 public class purchase extends javax.swing.JFrame {
 
+    private Deque<String> recentActions; // Queue to store recent actions
+
     public purchase() {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -32,6 +35,7 @@ public class purchase extends javax.swing.JFrame {
         populateDrugComboBox();  // Populate the drug combo box with data
         update_table();  // Update the table with purchase history data
         setupSearchFunctionality();  // Setup search functionality for the table
+        recentActions = new ArrayDeque<>(); // Initialize recent actions queue
     }
 
     Connection con;  // Database connection
@@ -115,6 +119,7 @@ public class purchase extends javax.swing.JFrame {
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
+        jButton4 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Drug store");
@@ -225,6 +230,13 @@ public class purchase extends javax.swing.JFrame {
             }
         });
 
+        jButton4.setText("Recent Actions");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                viewRecentActions(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -247,10 +259,12 @@ public class purchase extends javax.swing.JFrame {
                             .addComponent(txtQuantity, javax.swing.GroupLayout.PREFERRED_SIZE, 526, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 101, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(55, 55, 55)
+                                .addGap(18, 18, 18)
                                 .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(47, 47, 47)
-                                .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
+                                .addGap(18, 18, 18)
+                                .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
                 .addContainerGap(85, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
@@ -276,10 +290,10 @@ public class purchase extends javax.swing.JFrame {
                 .addComponent(txtQuantity, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(80, 80, 80)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 48, Short.MAX_VALUE)
+                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap(46, Short.MAX_VALUE))
         );
 
@@ -357,6 +371,10 @@ public class purchase extends javax.swing.JFrame {
             if (rowsUpdated > 0) {
                 JOptionPane.showMessageDialog(this, "Data updated successfully.");
                 update_table();
+                recentActions.add("Updated purchase: " + purchaseId);
+                if (recentActions.size() > 10) {
+                    recentActions.poll();
+                }
             } else {
                 JOptionPane.showMessageDialog(this, "No rows updated. Please check the selected row.");
             }
@@ -399,6 +417,10 @@ public class purchase extends javax.swing.JFrame {
                 if (rowsDeleted > 0) {
                     JOptionPane.showMessageDialog(this, "Data deleted successfully.");
                     update_table();
+                    recentActions.add("Deleted purchase: " + purchaseId);
+                    if (recentActions.size() > 10) {
+                        recentActions.poll();
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this, "No rows deleted. Please check the selected row.");
                 }
@@ -447,6 +469,10 @@ public class purchase extends javax.swing.JFrame {
             txtQuantity.setText("");
 
             update_table();
+            recentActions.add("Added purchase: " + drug_id);
+            if (recentActions.size() > 10) {
+                recentActions.poll();
+            }
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Invalid input: " + ex.getMessage());
         } catch (SQLException ex) {
@@ -468,24 +494,19 @@ public class purchase extends javax.swing.JFrame {
             DefaultTableModel DFT = (DefaultTableModel) jTable1.getModel();
             DFT.setRowCount(0); // Clear existing rows before updating
 
-            List<Vector<Object>> dataList = new ArrayList<>();
+            List<List<Object>> dataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> v2 = new Vector<>();
+                List<Object> row = new ArrayList<>();
                 for (int ii = 1; ii <= cc; ii++) {
-                    v2.add(rs.getInt("purchase_id"));
-                    v2.add(rs.getString("drug"));
-                    v2.add(rs.getDate("purchase_date"));
-                    v2.add(rs.getBigDecimal("total_amount"));
-                    v2.add(rs.getInt("quantity"));
-                    v2.add(rs.getString("supplier"));
+                    row.add(rs.getObject(ii));
                 }
-                dataList.add(v2);
+                dataList.add(row);
             }
 
             // Using an Iterator to add rows to the table model
-            Iterator<Vector<Object>> iterator = dataList.iterator();
+            Iterator<List<Object>> iterator = dataList.iterator();
             while (iterator.hasNext()) {
-                DFT.addRow(iterator.next());
+                DFT.addRow(iterator.next().toArray());
             }
 
         } catch (SQLException e) {
@@ -537,6 +558,14 @@ public class purchase extends javax.swing.JFrame {
         });
     }
 
+    private void viewRecentActions(java.awt.event.ActionEvent evt) {
+        StringBuilder recentActionsDisplay = new StringBuilder("Recent Actions:\n");
+        for (String action : recentActions) {
+            recentActionsDisplay.append(action).append("\n");
+        }
+        JOptionPane.showMessageDialog(this, recentActionsDisplay.toString());
+    }
+
     /**
      * The main method to start the application.
      */
@@ -552,6 +581,7 @@ public class purchase extends javax.swing.JFrame {
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
     private javax.swing.JComboBox<DrugItem> comboDrug;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

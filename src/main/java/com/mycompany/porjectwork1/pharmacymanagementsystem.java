@@ -9,10 +9,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
-import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
@@ -39,6 +40,7 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
     Connection con;  // Database connection
     PreparedStatement pst;  // Prepared statement for executing SQL queries
     private TableRowSorter<DefaultTableModel> rowSorter;  // Row sorter for filtering table rows
+    private Map<Integer, String> drugMap = new HashMap<>();  // HashMap to store drug information
 
     /**
      * Method to establish a connection to the database.
@@ -85,20 +87,21 @@ public class pharmacymanagementsystem extends javax.swing.JFrame {
             DFT.setRowCount(0);
 
             // Using a List to store the rows from the ResultSet
-            List<Vector<Object>> dataList = new ArrayList<>();
+            List<List<Object>> dataList = new ArrayList<>();
             while (rs.next()) {
-                Vector<Object> v2 = new Vector<>();
-                v2.add(rs.getInt("purchase_id"));
-                v2.add(rs.getInt("drug_id"));
-                v2.add(rs.getDate("purchase_date"));
-                v2.add(rs.getBigDecimal("total_amount"));
-                dataList.add(v2);
+                List<Object> row = new ArrayList<>();
+                row.add(rs.getInt("purchase_id"));
+                row.add(rs.getInt("drug_id"));
+                row.add(rs.getDate("purchase_date"));
+                row.add(rs.getBigDecimal("total_amount"));
+                dataList.add(row);
+                drugMap.put(rs.getInt("drug_id"), rs.getString("drug_id"));
             }
 
             // Using an Iterator to add rows to the table model
-            Iterator<Vector<Object>> iterator = dataList.iterator();
+            Iterator<List<Object>> iterator = dataList.iterator();
             while (iterator.hasNext()) {
-                DFT.addRow(iterator.next());
+                DFT.addRow(iterator.next().toArray());
             }
 
         } catch (SQLException e) {
